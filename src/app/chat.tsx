@@ -50,7 +50,6 @@ export const Chat = (props: { chat: DB.Chat | null }) => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const chatIdFromSearchParams = searchParams.get("chatId");
-
   const chatIdInUse = chatIdFromSearchParams || backupChatId;
   const { messages, sendMessage, status, regenerate } = useChat<MyMessage>({
     id: chatIdInUse,
@@ -65,6 +64,7 @@ export const Chat = (props: { chat: DB.Chat | null }) => {
     },
     generateId: () => crypto.randomUUID(),
   });
+  console.log("ep:", { messages });
 
   const ref = useFocusWhenNoChatIdPresent(chatIdFromSearchParams);
 
@@ -101,44 +101,45 @@ export const Chat = (props: { chat: DB.Chat | null }) => {
     <div className="relative flex-1 items-center flex flex-col min-h-0 w-full">
       <Conversation className="w-full">
         <ConversationContent className="max-w-4xl mx-auto w-full pb-40">
-          {messages.map((message) => (
-            <div key={message.id}>
-              {message.role === "assistant" &&
-                message.parts.filter((part) => part.type === "source-url")
-                  .length > 0 && (
-                  <Sources>
-                    <SourcesTrigger
-                      count={
-                        message.parts.filter(
-                          (part) => part.type === "source-url"
-                        ).length
-                      }
-                    />
-                    {message.parts
-                      .filter((part) => part.type === "source-url")
-                      .map((part, i) => (
-                        <SourcesContent key={`${message.id}-${i}`}>
-                          <Source
-                            key={`${message.id}-${i}`}
-                            href={part.url}
-                            title={part.url}
-                          />
-                        </SourcesContent>
-                      ))}
-                  </Sources>
-                )}
-              {message.parts.map((part, i) => {
-                switch (part.type) {
-                  case "text":
-                    return (
-                      <Fragment key={`${message.id}-${i}`}>
-                        <Message from={message.role}>
-                          <MessageContent>
-                            <Response>{part.text}</Response>
-                          </MessageContent>
-                        </Message>
-                        {message.role === "assistant" &&
-                          i === messages.length - 1 && (
+          {messages.map((message, messagesIndex) => {
+            const isLastMessage = messagesIndex === messages.length - 1;
+            return (
+              <div key={message.id}>
+                {message.role === "assistant" &&
+                  message.parts.filter((part) => part.type === "source-url")
+                    .length > 0 && (
+                    <Sources>
+                      <SourcesTrigger
+                        count={
+                          message.parts.filter(
+                            (part) => part.type === "source-url"
+                          ).length
+                        }
+                      />
+                      {message.parts
+                        .filter((part) => part.type === "source-url")
+                        .map((part, i) => (
+                          <SourcesContent key={`${message.id}-${i}`}>
+                            <Source
+                              key={`${message.id}-${i}`}
+                              href={part.url}
+                              title={part.url}
+                            />
+                          </SourcesContent>
+                        ))}
+                    </Sources>
+                  )}
+                {message.parts.map((part, i) => {
+                  switch (part.type) {
+                    case "text":
+                      return (
+                        <Fragment key={`${message.id}-${i}`}>
+                          <Message from={message.role}>
+                            <MessageContent>
+                              <Response>{part.text}</Response>
+                            </MessageContent>
+                          </Message>
+                          {message.role === "assistant" && isLastMessage && (
                             <Actions className="mt-2">
                               <Action
                                 onClick={() => regenerate()}
@@ -156,29 +157,30 @@ export const Chat = (props: { chat: DB.Chat | null }) => {
                               </Action>
                             </Actions>
                           )}
-                      </Fragment>
-                    );
-                  case "reasoning":
-                    return (
-                      <Reasoning
-                        key={`${message.id}-${i}`}
-                        className="w-full"
-                        isStreaming={
-                          status === "streaming" &&
-                          i === message.parts.length - 1 &&
-                          message.id === messages.at(-1)?.id
-                        }
-                      >
-                        <ReasoningTrigger />
-                        <ReasoningContent>{part.text}</ReasoningContent>
-                      </Reasoning>
-                    );
-                  default:
-                    return null;
-                }
-              })}
-            </div>
-          ))}
+                        </Fragment>
+                      );
+                    case "reasoning":
+                      return (
+                        <Reasoning
+                          key={`${message.id}-${i}`}
+                          className="w-full"
+                          isStreaming={
+                            status === "streaming" &&
+                            i === message.parts.length - 1 &&
+                            message.id === messages.at(-1)?.id
+                          }
+                        >
+                          <ReasoningTrigger />
+                          <ReasoningContent>{part.text}</ReasoningContent>
+                        </Reasoning>
+                      );
+                    default:
+                      return null;
+                  }
+                })}
+              </div>
+            );
+          })}
           {status === "submitted" && <Loader />}
         </ConversationContent>
         <ConversationScrollButton />
