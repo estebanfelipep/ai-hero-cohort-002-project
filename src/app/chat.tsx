@@ -66,6 +66,7 @@ export const Chat = (props: { chat: DB.Chat | null }) => {
       }
     },
     onFinish: () => {
+      // Refresh sidebar to show updated chat list or titles
       router.refresh();
     },
     generateId: () => crypto.randomUUID(),
